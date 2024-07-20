@@ -2,21 +2,29 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
-import pandas as pd
+from matplotlib import pyplot as plt
+import pandas as pd 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+print(os.environ)
 
 # Leer el DataFrame desde el archivo CSV
-df = pd.read_csv('data.csv')
+df = pd.read_excel('Seguimiento de Compras.xlsx')
+
 def create_email(row):
-    date_str = row['fecha']
-    state = row['estado']
-    nombre_proveedor = row['nombre_proveedor']
-    codigo_pedido = row['codigo_pedido']
+    date_str = row['Fecha Esperada']
+    state = row['Status']
+    nombre_proveedor = row['Proveedor']
+    codigo_pedido = row['Codigo de Pedido']
 
     date_format = "%Y-%m-%d"
-    date_obj = datetime.strptime(date_str, date_format)
+    print(date_str)
+    #date_obj = datetime.strptime(date_str, date_format)
     current_date = datetime.now()
     
-    if date_obj < current_date or state in ["retraso", "retrasoExtremo"]:
+    if date_str < current_date or state in ["retraso", "retrasoExtremo"]:
+        print("alerta")
         email_subject = "Notificación de retraso en entrega"
         email_body = f"""
         Estimado proveedor {nombre_proveedor},
@@ -26,7 +34,7 @@ def create_email(row):
         Por favor, tome las acciones necesarias para resolver este retraso lo antes posible.
 
         Atentamente,
-        Equipo de Monitorización
+        Equipo de Compras
         """
         
         return email_subject, email_body
@@ -58,10 +66,20 @@ sender_email = "your_email@gmail.com"
 sender_password = "your_app_password"  # Use the app password generated in the steps above
 
 # Envío de emails basados en el DataFrame
-for index, row in df.iterrows():
-    subject, body = create_email(row)
-    if subject and body:
-        recipient_email = row['email_proveedor']
-        send_email(smtp_server, smtp_port, sender_email, sender_password, recipient_email, subject, body)
-    else:
-        print(f"No action required for {row['nombre_proveedor']}.")
+# for index, row in df.iterrows():
+#     subject, body = create_email(row)
+#     if subject and body:
+#         recipient_email = row['Correo de Proveedor']
+#         send_email(smtp_server, smtp_port, sender_email, sender_password, recipient_email, subject, body)
+#     else:
+#         print(f"No action required for {row['Proveedor']}.")
+
+# muestra un grafico de pastel de los estados de los pedidos
+estado_counts = df['Status'].value_counts()
+
+# Crear el diagrama de pastel
+plt.figure(figsize=(8, 8))
+plt.pie(estado_counts, labels=estado_counts.index, autopct='%1.1f%%', startangle=140)
+plt.title('Cantidad de pedidos por estado')
+plt.show()
+    
