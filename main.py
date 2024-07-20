@@ -2,32 +2,31 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
+import pandas as pd
 
-def create_email(date_str, state):
-    # Convert the date string to a datetime object
-    date_format = "%Y-%m-%d"  # Assuming the date format is YYYY-MM-DD
+# Leer el DataFrame desde el archivo CSV
+df = pd.read_csv('data.csv')
+def create_email(row):
+    date_str = row['fecha']
+    state = row['estado']
+    nombre_proveedor = row['nombre_proveedor']
+    codigo_pedido = row['codigo_pedido']
+
+    date_format = "%Y-%m-%d"
     date_obj = datetime.strptime(date_str, date_format)
-    
-    # Get the current date
     current_date = datetime.now()
     
-    # Check if the date is less than the current date or if the state is "retraso" or "retrasoExtremo"
     if date_obj < current_date or state in ["retraso", "retrasoExtremo"]:
-        # Create the email content
-        email_subject = "Action Required: Urgent Issue Detected"
+        email_subject = "Notificación de retraso en entrega"
         email_body = f"""
-        Dear User,
+        Estimado proveedor {nombre_proveedor},
 
-        We have detected an issue that requires your immediate attention.
+        Hemos notado un retraso significativo en la entrega de suministros de la Universidad Nacional de Ingeniería con el código de pedido {codigo_pedido}.
 
-        Details:
-        - Date: {date_str}
-        - State: {state}
+        Por favor, tome las acciones necesarias para resolver este retraso lo antes posible.
 
-        Please take the necessary actions to address this issue as soon as possible.
-
-        Best regards,
-        Your Monitoring Team
+        Atentamente,
+        Equipo de Monitorización
         """
         
         return email_subject, email_body
@@ -35,14 +34,12 @@ def create_email(date_str, state):
     return None, None
 
 def send_email(smtp_server, smtp_port, sender_email, sender_password, recipient_email, subject, body):
-    # Create the email message
     msg = MIMEMultipart()
     msg['From'] = sender_email
     msg['To'] = recipient_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
     
-    # Connect to the SMTP server and send the email
     try:
         server = smtplib.SMTP(smtp_server, smtp_port)
         server.starttls()
@@ -54,18 +51,17 @@ def send_email(smtp_server, smtp_port, sender_email, sender_password, recipient_
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-# Example usage
-date_str = "2024-07-18"
-state = "retraso"
-subject, body = create_email(date_str, state)
+# Configuración del servidor SMTP y las credenciales
+smtp_server = "smtp.gmail.com"
+smtp_port = 587
+sender_email = "your_email@gmail.com"
+sender_password = "your_app_password"  # Use the app password generated in the steps above
 
-if subject and body:
-    smtp_server = "smtp.gmail.com"
-    smtp_port = 587
-    sender_email = "italo.casanova.d@uni.pe"
-    sender_password = "DwXwKPDwLz8n3GX."
-    recipient_email = "ever.burga.p@uni.pe"
-    
-    send_email(smtp_server, smtp_port, sender_email, sender_password, recipient_email, subject, body)
-else:
-    print("No action required.")
+# Envío de emails basados en el DataFrame
+for index, row in df.iterrows():
+    subject, body = create_email(row)
+    if subject and body:
+        recipient_email = row['email_proveedor']
+        send_email(smtp_server, smtp_port, sender_email, sender_password, recipient_email, subject, body)
+    else:
+        print(f"No action required for {row['nombre_proveedor']}.")
